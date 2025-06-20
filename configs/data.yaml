@@ -1,0 +1,4 @@
+colmap_dir: /home/phw/newdisk1/vpr_data/office619
+mesh_path: /home/phw/Downloads/textured_mesh.obj
+# 输出目录(rgb,poses,calibration,rgb_render,depth_render)
+output_dir: data/ref

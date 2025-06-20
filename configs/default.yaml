@@ -1,0 +1,43 @@
+# VPS Default Configuration
+
+# Visual Place Recognition (VPR) settings
+vpr:
+  method: "megaloc"  # Options: netvlad, megaloc
+  top_k: 1  # Number of similar images to retrieve
+  output_dir: "data/outputs/"
+  ref_images_path: "data/ref"
+  ref_descriptors_path: "data/outputs/ref.h5"
+  query_descriptors_path: "data/outputs/query.h5"
+  pairs_file_path: "data/outputs/pairs.txt"
+
+  
+
+# Pose Estimation settings
+pose:
+  method: "vggt"
+  vggt:
+    model_path: "checkpoints/model.pt"  # If null, will download from HuggingFace
+    image_size: 1024  # Input image size for VGGT
+    ref_dir: "data/ref"
+    results_dir: "data/outputs/poses"
+  
+
+# System settings
+system:
+  device: "cuda"  # Options: cuda, cpu
+  dtype: "float16"  # Options: float16, float32, bfloat16
+  seed: 42
+
+# Paths
+
+# Service settings
+service:
+  max_query_size: "10MB"  # Maximum query image size
+  supported_formats: ["jpg", "jpeg", "png"]
+  cleanup_temp_files: true  # Clean up temporary files after processing
+
+# Visualization settings
+visualization:
+  enabled: true
+  save_results: true
+  plot_matches: true 
