@@ -1,0 +1,39 @@
+# VPS Configuration for MASt3R
+
+# Visual Place Recognition (VPR) settings
+vpr:
+  method: "megaloc"  # Options: netvlad, megaloc
+  top_k: 1  # Number of similar images to retrieve
+  output_dir: "data/outputs/"
+  ref_images_path: "data/ref"
+  ref_descriptors_path: "data/outputs/ref.h5"
+  query_descriptors_path: "data/outputs/query.h5"
+  pairs_file_path: "data/outputs/pairs.txt"
+
+# Pose Estimation settings
+pose:
+  method: "mast3r"  # Using MASt3R for pose estimation
+  mast3r:
+    model_path: "checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth"
+    image_size: 512  # Input image size for MASt3R
+    batch_size: 1
+    ref_dir: "data/ref"
+    results_dir: "data/outputs/poses_mast3r"
+
+# System settings
+system:
+  device: "cuda"  # Options: cuda, cpu
+  dtype: "float16"  # Options: float16, float32, bfloat16
+  seed: 42
+
+# Service settings
+service:
+  max_query_size: "10MB"  # Maximum query image size
+  supported_formats: ["jpg", "jpeg", "png"]
+  cleanup_temp_files: true  # Clean up temporary files after processing
+
+# Visualization settings
+visualization:
+  enabled: true
+  save_results: true
+  plot_matches: true 

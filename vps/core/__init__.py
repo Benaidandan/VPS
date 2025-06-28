@@ -1,5 +1,6 @@
 from .vpr import VisualPlaceRecognition
 from .pose import PoseEstimator
+from .pose_mast3r import PoseEstimatorMASt3R
 import yaml
 from pathlib import Path
 from typing import Dict, Union, Optional
@@ -23,18 +24,27 @@ class VisualPositioningSystem:
             
         # Initialize components
         self.vpr = VisualPlaceRecognition(self.config)
-        self.pose_estimator = PoseEstimator(self.config)
+        
+        # Initialize pose estimator based on method
+        pose_method = self.config['pose']['method']
+        if pose_method == 'vggt':
+            self.pose_estimator = PoseEstimator(self.config)
+        elif pose_method == 'mast3r':
+            self.pose_estimator = PoseEstimatorMASt3R(self.config)
+        else:
+            raise ValueError(f"Unsupported pose method: {pose_method}")
         
 
     def localize(self,
                  query_image: Union[str, Path],
+                 query_depth: Optional[Union[str, Path]] = None
                 ) -> np.ndarray:
         """
         Perform visual localization for a single query image.
         
         Args:
             query_image: Path to query image
-            
+            query_depth: Path to query depth map(npy)
         Returns:
             Dictionary containing:
             - pose: 4x4 transformation matrix c2w
@@ -47,7 +57,7 @@ class VisualPositioningSystem:
         )
         b = time.time()
         print(f"VPR time: {b - a} seconds")
-        pose_answer = self.pose_estimator.estimate_pose(query_image)
+        pose_answer = self.pose_estimator.estimate_pose(query_image, query_depth)
         c = time.time()
         print(f"Pose estimation time: {c - b} seconds")
         return pose_answer

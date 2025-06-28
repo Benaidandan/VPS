@@ -9,60 +9,54 @@ import requests
 import json
 from pathlib import Path
 import argparse
+import os
 
-def test_health_check(base_url: str):
-    """Test the health check endpoint."""
-    print("Testing health check...")
-    response = requests.get(f"{base_url}/health")
-    if response.status_code == 200:
-        print("✓ Health check passed")
-        print(f"Reference database info: {response.json()['reference_info']}")
-    else:
-        print(f"✗ Health check failed: {response.status_code}")
 
-def test_localization(base_url: str, image_path: str, use_gt_depth: bool = True):
+def test_localization(base_url: str, image_path: str, depth_path: str):
     """Test the localization endpoint."""
     print(f"Testing localization with image: {image_path}")
     
     with open(image_path, 'rb') as f:
         files = {'image': f}
-        data = {'use_gt_depth': str(use_gt_depth).lower()}
         
-        response = requests.post(f"{base_url}/localize", files=files, data=data)
+        # 如果depth文件存在，则添加到files中
+        depth_file = None
+        if os.path.exists(depth_path):
+            depth_file = open(depth_path, 'rb')
+            files['depth'] = depth_file
+        
+        try:
+            response = requests.post(f"{base_url}/localize", files=files)
+        finally:
+            # 确保depth文件被关闭
+            if depth_file:
+                depth_file.close()
         
         if response.status_code == 200:
             result = response.json()
-            print("✓ Localization successful")
-            print(f"Confidence: {result['confidence']:.4f}")
-            print(f"Processing time: {result['processing_time']:.2f}s")
-            print(f"Best reference image: {result['best_ref_image']}")
-            print(f"Number of similar images: {len(result['similar_images'])}")
-            
-            if result['pose']:
-                print("Estimated pose matrix:")
-                for row in result['pose']:
-                    print(f"  {row}")
+            print((f"result: {result}"))
+
         else:
             print(f"✗ Localization failed: {response.status_code}")
-            print(f"Error: {response.text}")
+            print(f"Error: {response}")
 
 def main():
     parser = argparse.ArgumentParser(description='Test VPS service')
-    parser.add_argument('--url', type=str, default='http://localhost:5000',
+    parser.add_argument('--url', type=str, default='http://10.16.242.37:5000',
                        help='Base URL of the VPS service')
-    parser.add_argument('--image', type=str, required=True,
+    parser.add_argument('--image', type=str, required=True,default="/home/phw/visual-localization/VPS/data/ref/rgb/frame_000000.jpg",
                        help='Path to test image')
-    parser.add_argument('--no-gt-depth', action='store_true',
-                       help='Disable ground truth depth usage')
+    parser.add_argument('--depth', type=str, required=False,default=None,
+                       help='Path to test image depth')
     
     args = parser.parse_args()
     
     # Test health check
-    test_health_check(args.url)
-    print()
+    # test_health_check(args.url)
+    # print()
     
     # Test localization
-    test_localization(args.url, args.image, not args.no_gt_depth)
+    test_localization(args.url, args.image, args.depth)
 
 if __name__ == '__main__':
     main() 

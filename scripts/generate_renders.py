@@ -97,7 +97,7 @@ class RenderGenerator:
     def _render_scene(self, scene, camera_pose, intrinsics_camera, width, height):
         """Render RGB and depth from scene."""
         cam_node = scene.add(intrinsics_camera, pose=camera_pose)
-        light_node = scene.add(pyrender.PointLight(color=np.ones(3), intensity=50.0), pose=camera_pose)
+        light_node = scene.add(pyrender.PointLight(color=np.ones(3), intensity=20.0), pose=camera_pose)
 
         renderer = pyrender.OffscreenRenderer(viewport_width=width, viewport_height=height)
         color, depth = renderer.render(scene)
@@ -150,15 +150,15 @@ class RenderGenerator:
                 pose_matrix = np.loadtxt(pose_path)
                 
                 # Load calibration (3x3 matrix)
-                calib_path = self.calibration_dir / f"{image_stem}.txt"
-                if not calib_path.exists():
-                    print(f"⚠️  Calibration file not found: {calib_path}")
-                    failed_count += 1
-                    continue
+                # calib_path = self.calibration_dir / f"{image_stem}.txt"
+                # if not calib_path.exists():
+                #     print(f"⚠️  Calibration file not found: {calib_path}")
+                #     failed_count += 1
+                #     continue
                 
-                K = np.loadtxt(calib_path)
-                fx, fy, cx, cy = K[0, 0], K[1, 1], K[0, 2], K[1, 2]
-                
+                # K = np.loadtxt(calib_path)
+                # fx, fy, cx, cy = K[0, 0], K[1, 1], K[0, 2], K[1, 2]
+                fx, fy, cx, cy = 607.7286987304688,608.4338989257812,414.7984924316406,245.95716857910156
                 # Get image resolution
                 width, height = self._get_image_resolution(rgb_image_path)
                 if width is None or height is None:
