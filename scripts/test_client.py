@@ -21,7 +21,7 @@ def test_localization(base_url: str, image_path: str, depth_path: str):
         
         # 如果depth文件存在，则添加到files中
         depth_file = None
-        if os.path.exists(depth_path):
+        if depth_path and os.path.exists(depth_path):
             depth_file = open(depth_path, 'rb')
             files['depth'] = depth_file
         

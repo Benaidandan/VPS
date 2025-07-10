@@ -37,7 +37,8 @@ class VisualPositioningSystem:
 
     def localize(self,
                  query_image: Union[str, Path],
-                 query_depth: Optional[Union[str, Path]] = None
+                 query_depth: Optional[Union[str, Path]] = None,
+                 last_pose: Optional[np.ndarray] = None
                 ) -> np.ndarray:
         """
         Perform visual localization for a single query image.
@@ -53,7 +54,8 @@ class VisualPositioningSystem:
         # Find similar images using VPR
         a = time.time()
         similar_pairs = self.vpr.find_similar_images(
-            query_image
+            query_image,
+            last_pose
         )
         b = time.time()
         print(f"VPR time: {b - a} seconds")

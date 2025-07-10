@@ -14,39 +14,9 @@ from dust3r.utils.image import load_images
 from dust3r.cloud_opt import global_aligner, GlobalAlignerMode
 from dust3r.image_pairs import make_pairs
 from scipy.spatial.transform import Rotation as R
+from vps.utils.processing import compute_scale_factor, generate_ref_list
 
-_logger = logging.getLogger(__name__)
 
-def getScale(depth1: np.ndarray, depth2: np.ndarray, mask: Optional[np.ndarray] = None) -> float:
-    """
-    Compute scale factor between two depth maps.
-    
-    Args:
-        depth1: First depth map
-        depth2: Second depth map  
-        mask: Optional mask for valid depth values
-        
-    Returns:
-        Scale factor
-    """
-    if depth1.shape != depth2.shape:
-        depth2 = cv2.resize(depth2, 
-                           (depth1.shape[1], depth1.shape[0]),
-                           interpolation=cv2.INTER_LINEAR)
-    
-    if mask is None:
-        mask = (depth1 > 1e-1) & (depth2 > 1e-1)
-    
-    valid_depth1 = depth1[mask]
-    valid_depth2 = depth2[mask]
-    
-    if len(valid_depth1) == 0:
-        return 1.0
-    
-    scale_factors = valid_depth2 / valid_depth1
-    scale_factor = np.median(scale_factors)
-    
-    return scale_factor
 
 class PoseEstimatorMASt3R:
     """Pose estimation module using MASt3R."""
@@ -69,31 +39,7 @@ class PoseEstimatorMASt3R:
         self.image_size = config['pose']['mast3r']['image_size']
         self.batch_size = config['pose']['mast3r']['batch_size']
 
-    def generate_ref_list(self, query_img: Union[str, Path]) -> list[str]:
-        """
-        Generate a list of reference images and their corresponding poses.
-        """
-        query_name = Path(query_img).name
-        pairs_file = self.config['vpr']['pairs_file_path']
-        ref_list = []
-        
-        with open(pairs_file, 'r') as f:
-            for line in f:
-                A, ref_name = line.strip().split()
-                A = Path(A).name
-                if A != query_name:
-                    continue
-                ref_name = Path(ref_name).name
-                ref_image = Path(self.config['pose']['mast3r']['ref_dir']) / "rgb" / ref_name
-                if Path(ref_image).exists():
-                    ref_list.append(str(ref_image))
-                ref_render = Path(self.config['pose']['mast3r']['ref_dir']) / "rgb_render" / ref_name
-                if Path(ref_render).exists():
-                    ref_list.append(str(ref_render))
-        
-        return ref_list
-
-    def run_MASt3R(self, ref_img: Union[str, Path], query_img: Union[str, Path]) -> Tuple[np.ndarray, np.ndarray]:
+    def run_MASt3R(self, ref_img: Union[str, Path], query_img: Union[str, Path]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Run MASt3R inference on a pair of images.
         
@@ -128,22 +74,27 @@ class PoseEstimatorMASt3R:
             P_rel = np.linalg.inv(P_rel)  # query2ref
         
         # Get depth map
-        depth_map = scene.get_depthmaps()[0].cpu().numpy()
-        
-        return P_rel, depth_map
+        pred_depth_ref = scene.get_depthmaps()[0].cpu().numpy()
+        pred_depth_query = scene.get_depthmaps()[0].cpu().numpy()
+        return P_rel, pred_depth_ref, pred_depth_query
 
-    def estimate_pose(self, query_img: Union[str, Path]) -> np.ndarray:
+    def estimate_pose(
+        self, 
+        query_img: Union[str, Path],
+        query_depth: Optional[Union[str, Path]] = None
+        ) -> np.ndarray:
         """
         Estimate absolute pose for query image using MASt3R.
         
         Args:
             query_img: Path to query image
+            query_depth: Optional Path to query depth
             
         Returns:
             Absolute pose matrix (4x4) camera2world
         """
         query_img = Path(query_img)
-        ref_imgs = self.generate_ref_list(query_img)
+        ref_imgs = generate_ref_list(query_img, self.config['pose']['mast3r']['ref_dir'], self.config['vpr']['pairs_file_path'])
         
         if not ref_imgs:
             raise ValueError(f"No reference images found for query {query_img.name}")
@@ -152,31 +103,32 @@ class PoseEstimatorMASt3R:
         ref_img = Path(ref_imgs[0])
         
         # Run MASt3R to get relative pose and depth
-        P_rel, depth_map_mast3r = self.run_MASt3R(ref_img, query_img)
-        
+        P_rel, pred_depth_ref, pred_depth_query = self.run_MASt3R(ref_img, query_img)
+        scale_factor = 1.0
+        if query_depth is not None:
+            if Path(query_depth).exists():
+                print(f"query_depth 存在")
+                query_depth = np.load(query_depth)
+                query_depth = cv2.resize(query_depth, (pred_depth_query.shape[1], pred_depth_query.shape[0]), interpolation=cv2.INTER_LINEAR)
+                scale_factor = compute_scale_factor(pred_depth_query, query_depth)
+        else:
+            # Try to load reference depth for scale recovery
+            ref_depth = None
+            depth_path = ref_img.parent.parent / "depth" / f"{ref_img.stem}.npy"
+            depth_render_path = ref_img.parent.parent / "depth_render" / f"{ref_img.stem}.npy"
+            if depth_path.exists():
+                ref_depth = np.load(depth_path)
+            elif depth_render_path.exists():
+                ref_depth = np.load(depth_render_path)
+            if ref_depth is not None:
+                ref_depth = cv2.resize(ref_depth, 
+                                            (pred_depth_ref.shape[1], pred_depth_ref.shape[0]), 
+                                            interpolation=cv2.INTER_LINEAR)
+                scale_factor = compute_scale_factor(pred_depth_ref, ref_depth)
+        P_rel[:3, 3] *= scale_factor
+        print(f"scale_factor: {scale_factor}")
         # Load reference pose and depth for scale recovery
         ref_pose = np.loadtxt(ref_img.parent.parent / "poses" / f"{ref_img.stem}.txt").reshape(4, 4)
-        
-        # Try to load reference depth for scale recovery
-        ref_depth = None
-        depth_path = ref_img.parent.parent / "depth" / f"{ref_img.stem}.npy"
-        depth_render_path = ref_img.parent.parent / "depth_render" / f"{ref_img.stem}.npy"
-        
-        if depth_path.exists():
-            ref_depth = np.load(depth_path)
-        elif depth_render_path.exists():
-            ref_depth = np.load(depth_render_path)
-        
-        # Apply scale recovery if reference depth is available
-        scale_factor = 1.0
-        if ref_depth is not None:
-            depth_map_resized = cv2.resize(ref_depth, 
-                                         (depth_map_mast3r.shape[1], depth_map_mast3r.shape[0]), 
-                                         interpolation=cv2.INTER_LINEAR)
-            scale_factor = getScale(depth_map_mast3r, depth_map_resized)
-            P_rel[:3, 3] *= scale_factor
-            _logger.info(f"Scale factor: {scale_factor}")
-        
         # Compute final absolute pose
         final_pose = ref_pose @ P_rel
         

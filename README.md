@@ -101,6 +101,7 @@ VPS/
 │   │   ├── pose_mast3r.py # MASt3R pose estimator
 │   │   ├── vpr.py         # Visual place recognition
 │   │   └── __init__.py    # Main VPS class
+│   ├── service.py         # network
 ├── configs/                # Configuration files
 │   ├── default.yaml       # Default config (VGGT)
 │   └── mast3r.yaml        # MASt3R config
@@ -109,7 +110,6 @@ VPS/
 ├── data/                   # Dataset directory
 ├── third_party/           # Third-party models
 │   └── mast3r/            # MASt3R model files
-└── tests/                  # Test code
 ```
 
 ## Dependencies
@@ -121,6 +121,16 @@ VPS/
 - OpenCV
 - NumPy
 - PyColmap
+
+
+##主要代码
+service: 提供网络接口（localize）rgb(必须) + depth(可选)： png是mm为单位，npy是米为单位
+            接口接收 数据（depth统一转npy 米单位）以统一的命名保存到指定路径（default.yaml）
+
+  init: 
+    vpr.py :  输入图像路径，删除暂缓区，保存到暂缓区域，进行vpr识别
+    pose.py :  输入rgb路径和depth路径（可选）
+
 
 ## License
 

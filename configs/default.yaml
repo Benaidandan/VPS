@@ -5,11 +5,14 @@ vpr:
   method: "megaloc"  # Options: netvlad, megaloc
   top_k: 3  # Number of similar images to retrieve
   output_dir: "data/outputs/"
-  ref_images_path: "data/ref"
+  ref_data_path: "data/ref"
   ref_descriptors_path: "data/outputs/ref.h5"
   query_descriptors_path: "data/outputs/query.h5"
   pairs_file_path: "data/outputs/pairs.txt"
-
+  use_spatial_filtering: False
+  spatial_radius: 1.0
+  similarity_threshold: 0.4
+  history_file: "data/outputs/last_pose.txt"
   
 
 # Pose Estimation settings
