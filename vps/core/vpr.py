@@ -33,6 +33,16 @@ class VisualPlaceRecognition:
         self.history_file = Path(config['vpr'].get('history_file', 'data/outputs/last_pose.txt'))
         self.last_pose = None
 
+        #加载vpr模型
+        if self.method == 'netvlad':
+            self.retrieval_conf = extract_features.confs['netvlad']
+        elif self.method == 'megaloc':
+            self.retrieval_conf = extract_features.confs['megaloc']
+        else:
+            raise ValueError(f"Unsupported VPR method: {self.method}")
+        #megaloc vpr
+        self.model = dynamic_load(extractors, self.retrieval_conf["model"]["name"])(self.retrieval_conf["model"]).eval().to(config['system']['device'])
+        
         #加载数据库数据
         self.db_names = None
         self.db_desc = None
@@ -53,16 +63,7 @@ class VisualPlaceRecognition:
         self.db_names = parse_names(prefix=None, names=None, names_all=db_names_h5)
         self.db_desc = get_descriptors(self.db_names, self.ref_descriptors, name2db)
 
-        # Set up the feature extractor configuration
-        if self.method == 'netvlad':
-            self.retrieval_conf = extract_features.confs['netvlad']
-        elif self.method == 'megaloc':
-            self.retrieval_conf = extract_features.confs['megaloc']
-        else:
-            raise ValueError(f"Unsupported VPR method: {self.method}")
-        #megaloc vpr
-        self.model = dynamic_load(extractors, self.retrieval_conf["model"]["name"])(self.retrieval_conf["model"]).eval().to(config['system']['device'])
-        
+
     def _load_pose_history(self):
         """加载历史pose信息"""
         if self.history_file.exists():

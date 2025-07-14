@@ -23,7 +23,7 @@ def create_app(config_path: str = "configs/default.yaml"):
     
     return app
 
-def get_robot_to_camera_transform(offset_z: float = -0.15):
+def get_robot_to_camera_transform(offset_z: float = -0.1):
     """
     构造一个从机器人中心坐标系到相机坐标系的变换矩阵（只有平移，没有旋转）
     offset_z: 相机坐标系下机器人在Z轴方向上的偏移,默认 -0.2m
@@ -70,9 +70,9 @@ def transform_matrix_to_pose_2d(transform_matrix):
     }
 
 def map2map(x, y, theta):
-    scale = 1.0104234599509834
-    R = np.array([[ 0.96054926, -0.2781099 ],[ 0.2781099, 0.96054926]])
-    t = np.array([ 0.8427085, -5.45116856])
+    scale = 1
+    R = np.array([[ -0.20886882 ,0.97588923 ],[ -0.97588923 ,-0.20886882]])
+    t = np.array([ 6.36628206, 9.91735557])
     src_pos = np.array([x, y])
     tgt_pos = scale * (R @ src_pos) + t
 
@@ -136,13 +136,13 @@ def localize():
             # 如果result包含pose字段且是4x4矩阵
             # 将4x4矩阵转换为x, y, theta格式
             pose_2d = transform_matrix_to_pose_2d(pose3d)
-            # ans = map2map(x= pose_2d['x'], y= pose_2d['y'], theta= pose_2d['theta'])
-            ans = pose_2d
-            # ans = {
-            #     'x': ans[0],
-            #     'y': ans[1],
-            #     'theta': ans[2]
-            # }
+            ans = map2map(x= pose_2d['x'], y= pose_2d['y'], theta= pose_2d['theta'])
+            # ans = pose_2d
+            ans = {
+                'x': ans[0],
+                'y': ans[1],
+                'theta': ans[2]
+            }
             print(f"ans: {ans}")
             return jsonify(ans), 200
         else:

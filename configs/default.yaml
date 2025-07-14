@@ -11,15 +11,17 @@ vpr:
   pairs_file_path: "data/outputs/pairs.txt"
   use_spatial_filtering: False
   spatial_radius: 1.0
-  similarity_threshold: 0.4
+  similarity_threshold: 0.0001
   history_file: "data/outputs/last_pose.txt"
   
 
 # Pose Estimation settings
 pose:
   method: "vggt"  # Options: vggt, mast3r
+  use_depth_pre: True
+  depth_pre_model_path: "checkpoints/moge2_model.pt"
   vggt:
-    model_path: "checkpoints/model.pt"  # If null, will download from HuggingFace
+    model_path: "checkpoints/vggt_model.pt"  # If null, will download from HuggingFace
     image_size: 1024  # Input image size for VGGT
     ref_dir: "data/ref"
     results_dir: "data/outputs/poses"
