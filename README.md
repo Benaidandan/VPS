@@ -1,14 +1,14 @@
 # VPS: Visual Positioning System
 
-A coarse-to-fine visual positioning system that combines the power of Hierarchical-Localization (Hloc) for visual place recognition and multiple pose estimation methods (VGGT, MASt3R) for accurate pose estimation.
+A coarse-to-fine visual positioning system that combines the power of Hierarchical-Localization (Hloc)  for visual place recognition and multiple pose estimation methods (VGGT, MASt3R) for accurate pose estimation.
 
 ## Features
 
-- Efficient visual place recognition using Hloc's NetVLAD
+- Efficient visual place recognition using [MegaLoc](https://github.com/gmberton/MegaLoc) in [Hloc](https://github.com/cvg/Hierarchical-Localization)
 - Multiple pose estimation methods:
-  - VGGT for accurate pose estimation
-  - MASt3R for robust pose estimation
-- Scale recovery using ground truth depth information
+  - [VGGT](https://github.com/facebookresearch/vggt?tab=readme-ov-file) for accurate pose estimation
+  - [MASt3R](https://github.com/naver/mast3r)
+- Scale recovery using ground truth depth information or use [moge](https://github.com/microsoft/moge) to Monocular Depth Estimation
 - Easy-to-use pipeline for visual localization
 - Configurable pose estimation methods
 
@@ -16,7 +16,7 @@ A coarse-to-fine visual positioning system that combines the power of Hierarchic
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/VPS.git
+git clone --recursive https://github.com/Benaidandan/VPS.git
 cd VPS
 ```
 
@@ -28,7 +28,14 @@ conda activate vps
 
 3. Install dependencies:
 ```bash
+cd third_party/vggt
+# install pytorch 2.3.1 with cuda 12.1
+pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cu121
 pip install -e .
+cd ..
+cd Hierarchical-Localization/
+python -m pip install -e .
+cd ..
 ```
 
 4. (Optional) For MASt3R support, ensure the MASt3R model is available in `third_party/mast3r/checkpoints/`
