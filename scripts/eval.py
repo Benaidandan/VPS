@@ -27,11 +27,11 @@ def translation_error(t1, t2):
 # 假设vps结果和gt都为4x4的txt
 def evaluate(query_dir, result_dir, gt_dir, result_txt_path):
     thresholds = [
-        (1, 1),(3,3), (3, 5),(3,10),(3,15),(3,20),(3,30) ,(5, 10), (5, 15)
+        (1, 1),(3,3), (5, 5),(5,10),(5,15),(3,20),(3,30) ,(5, 10), (5, 15)
     ]
     # 失败指标：旋转误差大于5度或平移误差大于20cm
-    failure_r_thresh = 5
-    failure_t_thresh = 20
+    failure_r_thresh = 1000000000000000000
+    failure_t_thresh = 1000000000000000000
 
     counts = [0] * len(thresholds)
     total = 0
@@ -107,7 +107,7 @@ with open(config_path, 'r') as f:
 # Initialize VPS
 vps = VisualPositioningSystem(config_path=config_path)
 start_time = time.time()
-query_dir = Path("/home/phw/visual-localization/VPS/data/query")
+query_dir = Path("/home/phw/newdisk1/VPS_data/7scenes_chess/query/rgb")
 for ext in ["*.jpg", "*.png"]:
     for query_image in query_dir.glob(ext):
         a = query_image.stem
@@ -119,9 +119,9 @@ for ext in ["*.jpg", "*.png"]:
         vps.localize(query_image,query_depth=query_depth)
 end_time = time.time()
 print(f"Time taken: {end_time - start_time:.2f} seconds")
-result_dir = "data/outputs/poses"
-gt_dir = "data/ref/poses"
-result_txt_path = "data/outputs/result.txt"
+result_dir = "/home/phw/newdisk1/VPS_data/7scenes_chess/outputs/poses"
+gt_dir = "/home/phw/newdisk1/VPS_data/7scenes_chess/query/poses"
+result_txt_path = "/home/phw/newdisk1/VPS_data/7scenes_chess/outputs/result.txt"
 evaluate(query_dir, result_dir, gt_dir, result_txt_path)
 
 

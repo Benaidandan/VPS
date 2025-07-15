@@ -35,14 +35,24 @@ pip install -e .
 cd ..
 cd Hierarchical-Localization/
 python -m pip install -e .
-cd ..
+cd ../..
+pip install git+https://github.com/microsoft/MoGe.git
+
 ```
-
-4. (Optional) For MASt3R support, ensure the MASt3R model is available in `third_party/mast3r/checkpoints/`
-
+4. (Optional) For MASt3R support, refer to https://github.com/naver/mast3r?tab=readme-ov-file#installation
+5. (Optional) Download models
+```bash
+mkdir checkpoints
+cd checkpoints
+```
+[Ruicheng/moge-2-vits-normal](https://huggingface.co/Ruicheng/moge-2-vits-normal)
+[vggt_1B](https://huggingface.co/facebook/VGGT-1B/blob/main/model.pt)
+[megaloc.torch](https://github.com/gmberton/MegaLoc/releases/download/v1.0/megaloc.torch)
 ## Usage
 
 ### Basic Usage
+input: rgb+pose(c2w)
+output: pose(c2w)
 
 ```python
 from vps.core import VisualPositioningSystem
@@ -107,6 +117,7 @@ VPS/
 │   │   ├── pose.py        # VGGT pose estimator
 │   │   ├── pose_mast3r.py # MASt3R pose estimator
 │   │   ├── vpr.py         # Visual place recognition
+│   │   ├── depth_pred.py  # Depth pred （m）
 │   │   └── __init__.py    # Main VPS class
 │   ├── service.py         # network
 ├── configs/                # Configuration files
