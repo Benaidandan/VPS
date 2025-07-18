@@ -8,7 +8,7 @@ A coarse-to-fine visual positioning system that combines the power of Hierarchic
 - Multiple pose estimation methods:
   - [VGGT](https://github.com/facebookresearch/vggt?tab=readme-ov-file) for accurate pose estimation
   - [MASt3R](https://github.com/naver/mast3r)
-- Scale recovery using ground truth depth information or use [moge](https://github.com/microsoft/moge) to Monocular Depth Estimation
+- Scale recovery：using 1.input ground truth depth by rgbd camera information or 2.use [moge](https://github.com/microsoft/moge) to Monocular Depth Estimation  or 3.ues ref database depth and rgb
 - Easy-to-use pipeline for visual localization
 - Configurable pose estimation methods
 
@@ -24,10 +24,12 @@ cd VPS
 ```bash
 conda create -n vps python=3.10
 conda activate vps
+pip -r requirements.txt
 ```
 
 3. Install dependencies:
 ```bash
+#vggt
 cd third_party/vggt
 # install pytorch 2.3.1 with cuda 12.1
 pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cu121
@@ -35,121 +37,93 @@ pip install -e .
 cd ..
 cd Hierarchical-Localization/
 python -m pip install -e .
-cd ../..
+cd ..
+#For MASt3R support, refer to https://github.com/naver/mast3r?tab=readme-ov-file#installation
+##
+cd mast3r
+pip install -r requirements.txt
+pip install -r dust3r/requirements.txt
+# Optional: you can also install additional packages to:
+# - add support for HEIC images
+# - add required packages for visloc.py
+pip install -r dust3r/requirements_optional.txt
+pip install cython
+pip install faiss-gpu
+git clone https://github.com/jenicek/asmk
+cd asmk/cython/
+cythonize *.pyx
+cd ..
+pip install .  # or python3 setup.py build_ext --inplace
+cd ../../..
+## depth pred
 pip install git+https://github.com/microsoft/MoGe.git
 
 ```
-4. (Optional) For MASt3R support, refer to https://github.com/naver/mast3r?tab=readme-ov-file#installation
-5. (Optional) Download models
+4. (Optional) Download models
 ```bash
 mkdir checkpoints
 cd checkpoints
 ```
 [Ruicheng/moge-2-vits-normal](https://huggingface.co/Ruicheng/moge-2-vits-normal)
+##
 [vggt_1B](https://huggingface.co/facebook/VGGT-1B/blob/main/model.pt)
-[megaloc.torch](https://github.com/gmberton/MegaLoc/releases/download/v1.0/megaloc.torch)
 ## Usage
 
 ### Basic Usage
-input: rgb+pose(c2w)
-output: pose(c2w)
+input: rgb + depth(可选)
+ref数据库：rgb+pose(c2w) 相机到世界
+output:  
+  4x4 pose c2w(txt格式放到/data/outputs/pose下)
+  服务器返回json: {'theta': , 'x': , 'y': }
 
-```python
-from vps.core import VisualPositioningSystem
-
-# Initialize the system with VGGT (default)
-vps = VisualPositioningSystem(config_path='configs/default.yaml')
-
-# Perform localization
-pose = vps.localize(query_image='path/to/query.jpg')
-```
-
-### Using MASt3R for Pose Estimation
-
-```python
-from vps.core import VisualPositioningSystem
-
-# Initialize the system with MASt3R
-vps = VisualPositioningSystem(config_path='configs/mast3r.yaml')
-
-# Perform localization
-pose = vps.localize(query_image='path/to/query.jpg')
-```
-
-### Configuration
-
-You can switch between pose estimation methods by modifying the configuration file:
-
-```yaml
-# For VGGT
-pose:
-  method: "vggt"
-  vggt:
-    model_path: "checkpoints/model.pt"
-    image_size: 1024
-    ref_dir: "data/ref"
-    results_dir: "data/outputs/poses"
-
-# For MASt3R
-pose:
-  method: "mast3r"
-  mast3r:
-    model_path: "third_party/mast3r/checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth"
-    image_size: 512
-    batch_size: 1
-    ref_dir: "data/ref"
-    results_dir: "data/outputs/poses_mast3r"
-```
-
-## Testing
-
-Test MASt3R integration:
 ```bash
-python scripts/test_mast3r.py
+#启动服务器
+python service.py 
+#模拟测试服务器
+python scripts/test_client.py --url xxx --image xxx
 ```
 
+###Structure
 ## Project Structure
 
 ```
 VPS/
-├── vps/                    # Main source code
+├── vps/                   # Main source code
 │   ├── core/              # Core modules
 │   │   ├── pose.py        # VGGT pose estimator
 │   │   ├── pose_mast3r.py # MASt3R pose estimator
 │   │   ├── vpr.py         # Visual place recognition
 │   │   ├── depth_pred.py  # Depth pred （m）
 │   │   └── __init__.py    # Main VPS class
-│   ├── service.py         # network
-├── configs/                # Configuration files
-│   ├── default.yaml       # Default config (VGGT)
-│   └── mast3r.yaml        # MASt3R config
-├── scripts/                # Training and evaluation scripts
-│   └── test_mast3r.py     # MASt3R test script
-├── data/                   # Dataset directory
-├── third_party/           # Third-party models
-│   └── mast3r/            # MASt3R model files
+│   ├── utils/             # tool
+├── configs/               # Configuration files
+│   ├── default.yaml       # Default config (VGGT) 重要
+│   └── data.yaml          # 配合scripts/colmap_to_vps.py将colmap转需要的格式，不用管
+├── log/                   # logger
+├── log/                   # logger
+├── service.py             # Dataset directory
 ```
-
-## Dependencies
-
-- PyTorch >= 2.3.1
-- Hloc (from [Hierarchical-Localization](https://github.com/cvg/Hierarchical-Localization))
-- VGGT (from [VGGT](https://github.com/facebookresearch/vggt))
-- MASt3R (from [MASt3R](https://github.com/naver/MASt3R))
-- OpenCV
-- NumPy
-- PyColmap
-
-
-##主要代码
-service: 提供网络接口（localize）rgb(必须) + depth(可选)： png是mm为单位，npy是米为单位
-            接口接收 数据（depth统一转npy 米单位）以统一的命名保存到指定路径（default.yaml）
-
-  init: 
-    vpr.py :  输入图像路径，删除暂缓区，保存到暂缓区域，进行vpr识别
-    pose.py :  输入rgb路径和depth路径（可选）
-
-
-## License
-
-MIT License 
+##Data Structure
+```
+├── data/                  # Dataset directory
+│   ├── ref/               # ref database 参考数据库(来源是slam 或者colmap的) 下面默认是文件夹名字
+│   │   ├── rgb/            # png jpg
+│   │   ├── poses/          # c2w  4x4 txt
+│   │   ├── depth/          # 深度 npy  单位m (Optional，没有的话启用moge单目深度估计 在d455效果不错)
+│   │   ├── depth_render/   # 渲染的深度 npy  单位m (Optional)
+│   │   ├── calibration/    # Camera Intrinsics 3x3 txt(Optional 暂时没用到)
+│   │   ├── rgb_render/     # rgb rendered by mesh or 3d Gaussian
+│   │
+│   ├── outputs/           # 
+│   │   ├── poses/          #vps result dir c2w  4x4 txt
+│   │   ├── temp/          
+│   │   ├── pairs.txt      #vpr result
+│   │   ├── query.h5       #
+│   │   ├── ref.h5         #
+│   │   ├── result.txt     #eval
+│   │   ├── last_pose.txt  #last vps result（并没有节省时间）
+│   │
+│   ├── query/           #service.py和 scripts.py共用
+数据结构如上就行 与config中的default.yaml相对应即可
+在data中rgb，depth,啥的除了尾缀格式不一样外，要求same filename 
+```

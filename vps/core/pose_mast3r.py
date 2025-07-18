@@ -107,7 +107,7 @@ class PoseEstimatorMASt3R:
         scale_factor = 1.0
         if query_depth is not None:
             if Path(query_depth).exists():
-                print(f"query_depth 存在")
+                logging.info(f"query_depth 存在")
                 query_depth = np.load(query_depth)
                 query_depth = cv2.resize(query_depth, (pred_depth_query.shape[1], pred_depth_query.shape[0]), interpolation=cv2.INTER_LINEAR)
                 scale_factor = compute_scale_factor(pred_depth_query, query_depth)
@@ -126,7 +126,7 @@ class PoseEstimatorMASt3R:
                                             interpolation=cv2.INTER_LINEAR)
                 scale_factor = compute_scale_factor(pred_depth_ref, ref_depth)
         P_rel[:3, 3] *= scale_factor
-        print(f"scale_factor: {scale_factor}")
+        logging.info(f"scale_factor: {scale_factor}")
         # Load reference pose and depth for scale recovery
         ref_pose = np.loadtxt(ref_img.parent.parent / "poses" / f"{ref_img.stem}.txt").reshape(4, 4)
         # Compute final absolute pose
@@ -136,6 +136,7 @@ class PoseEstimatorMASt3R:
         result_path = Path(self.config['pose']['mast3r']['results_dir']) / f"{query_img.stem}.txt"
         result_path.parent.mkdir(parents=True, exist_ok=True)
         np.savetxt(result_path, final_pose)
+        np.savetxt(result_path.parent.parent/ f"last_pose.txt", final_pose)
         
         return final_pose
 

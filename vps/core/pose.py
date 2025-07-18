@@ -6,6 +6,7 @@ import cv2
 import json
 import os
 import time
+import logging
 import torch.nn.functional as F
 from vggt.models.vggt import VGGT
 from vggt.utils.load_fn import load_and_preprocess_images_square
@@ -100,7 +101,7 @@ class PoseEstimator:
         ref_imgs = generate_ref_list(query_img, self.config['pose']['vggt']['ref_dir'], self.config['vpr']['pairs_file_path'])
         ref_imgs.append(query_img)
         image_paths = ref_imgs
-        print(f"image数量: {len(image_paths)}")
+        logging.info(f"image数量: {len(image_paths)}")
         assert len(image_paths) >=2
         start_time = time.time()
         images, original_coords = load_and_preprocess_images_square(image_paths, self.image_size)
@@ -110,7 +111,7 @@ class PoseEstimator:
         # 运行VGGT获取相机参数和深度图
         extrinsic, intrinsic, depth_map, depth_conf = self.run_VGGT(self.model, images, self.dtype, 518)
         end_time = time.time()
-        print(f"VGGT 运行时间: {end_time - start_time:.2f}s")
+        logging.info(f"VGGT 运行时间: {end_time - start_time:.2f}s")
         # Compute relative pose
         P_query = np.concatenate([extrinsic[-1], np.array([[0, 0, 0, 1]])], axis=0)
         P_ref = np.concatenate([extrinsic[0], np.array([[0, 0, 0, 1]])], axis=0)
@@ -123,7 +124,7 @@ class PoseEstimator:
         scale_factor = 1.0
         if query_depth is not None:
             if Path(query_depth).exists():
-                print(f"query_depth 存在")
+                logging.info(f"query_depth 存在")
                 vggt_depth = depth_map[-1].squeeze()
                 query_depth = np.load(query_depth)
                 query_depth = cv2.resize(query_depth, (vggt_depth.shape[1], vggt_depth.shape[0]), interpolation=cv2.INTER_LINEAR)
@@ -139,7 +140,7 @@ class PoseEstimator:
                 ref_depth = cv2.resize(ref_depth, (vggt_depth.shape[1], vggt_depth.shape[0]), interpolation=cv2.INTER_LINEAR)
                 scale_factor = compute_scale_factor(vggt_depth, ref_depth)
         query2ref[:3, 3] *= scale_factor
-        print(f"scale_factor: {scale_factor}")
+        logging.info(f"scale_factor: {scale_factor}")
         
          # 计算最终的位姿
         final_pose = ref_pose @ query2ref

@@ -7,6 +7,9 @@ import sys
 from pathlib import Path
 import numpy as np
 import os
+from analyze_translation_error import main as analyze_translation_error
+import logging
+import datetime
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -57,14 +60,14 @@ def evaluate(query_dir, result_dir, gt_dir, result_txt_path):
             R_gt, t_gt = gt[:3, :3], gt[:3, 3]
             r_err = rotation_error(R_pred, R_gt)
             t_err = translation_error(t_pred, t_gt)
-
-            result_str = f"{name}: t_err={t_err:.4f}cm, r_err={r_err:.4f}deg"
+            angle_deg, scale, best_terror = analyze_translation_error(gt_path, pred_path)
+            result_str = f"{name}: t_err={t_err:.4f}cm, r_err={r_err:.4f}deg, angle_deg={angle_deg:.4f}deg, scale={scale:.4f}, best_error={best_terror:.4f}cm"
             if r_err < failure_r_thresh and t_err < failure_t_thresh:
                 successful_t_errs.append(t_err)
                 successful_r_errs.append(r_err)
                 successful_results.append(result_str)
                 for i, (r_th, t_th) in enumerate(thresholds):
-                    if r_err < r_th and t_err < t_th:
+                    if r_err < r_th and best_terror < t_th:
                         counts[i] += 1
             else:
                 failed_results.append(result_str)
@@ -101,13 +104,17 @@ def evaluate(query_dir, result_dir, gt_dir, result_txt_path):
 
 # # Load configuration
 config_path = "configs/default.yaml"
+os.makedirs('../log',exist_ok=True)
+log_filename = datetime.datetime.now().strftime("log/log_%Y-%m-%d_%H-%M-%S.log")
+logging.basicConfig(filename=log_filename, level=logging.INFO, format="%(asctime)s - %(message)s")
+logger = logging.getLogger(__name__)
 with open(config_path, 'r') as f:
     config = yaml.safe_load(f)
 
 # Initialize VPS
 vps = VisualPositioningSystem(config_path=config_path)
 start_time = time.time()
-query_dir = Path("/home/phw/newdisk1/VPS_data/7scenes_chess/query/rgb")
+query_dir = Path("/home/phw/visual-localization/VPS/data/query")
 for ext in ["*.jpg", "*.png"]:
     for query_image in query_dir.glob(ext):
         a = query_image.stem
@@ -119,9 +126,9 @@ for ext in ["*.jpg", "*.png"]:
         vps.localize(query_image,query_depth=query_depth)
 end_time = time.time()
 print(f"Time taken: {end_time - start_time:.2f} seconds")
-result_dir = "/home/phw/newdisk1/VPS_data/7scenes_chess/outputs/poses"
-gt_dir = "/home/phw/newdisk1/VPS_data/7scenes_chess/query/poses"
-result_txt_path = "/home/phw/newdisk1/VPS_data/7scenes_chess/outputs/result.txt"
+result_dir = "/home/phw/visual-localization/VPS/data/outputs/poses"
+gt_dir = "/home/phw/newdisk1/VPS_data/7/pgt_7scenes_chess/test/poses"
+result_txt_path = "/home/phw/newdisk1/VPS_data/7/pgt_7scenes_chess/outputs/result.txt"
 evaluate(query_dir, result_dir, gt_dir, result_txt_path)
 
 

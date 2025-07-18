@@ -1,6 +1,7 @@
 /checkpoints/
 /outputs/
 /data/
+/log
 /vps.egg-info/
 __pycache__/
 *.txt

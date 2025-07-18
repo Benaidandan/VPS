@@ -6,7 +6,7 @@ from vps.core import VisualPositioningSystem
 import logging
 import cv2
 import sys
-
+import datetime
 
 app = Flask(__name__)
 
@@ -152,15 +152,18 @@ def localize():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
+    os.makedirs('./log',exist_ok=True)
+    log_filename = datetime.datetime.now().strftime("log/log_%Y-%m-%d_%H-%M-%S.log")
+    logging.basicConfig(filename=log_filename, level=logging.INFO, format="%(asctime)s - %(message)s")
     # 全局日志配置
-    logging.basicConfig(
-        level=logging.INFO,  # 设置最低显示级别为 INFO
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',  # 格式
-        handlers=[
-            # logging.FileHandler("log.txt"),       # 写入文件 log.txt
-            logging.StreamHandler(sys.stdout)     # 同时输出到控制台
-        ]
-    )
+    # logging.basicConfig(
+    #     level=logging.INFO,  # 设置最低显示级别为 INFO
+    #     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',  # 格式
+    #     handlers=[
+    #         # logging.FileHandler("log.txt"),       # 写入文件 log.txt
+    #         logging.StreamHandler(sys.stdout)     # 同时输出到控制台
+    #     ]
+    # )
 
     logger = logging.getLogger(__name__)
     app = create_app()

@@ -12,6 +12,7 @@ from hloc import logger
 from hloc.utils.io import list_h5_names
 from hloc.utils.parsers import parse_image_lists
 from hloc.utils.read_write_model import read_images_binary
+import logging
 
 
 def parse_names(prefix, names, names_all):
@@ -82,7 +83,7 @@ def spatial_filter(db_names, db_desc, last_pose, ref_poses_dir, spatial_radius):
         pose_list.append(pose[:3, 3])
         valid_indices.append(idx)
     if len(pose_list) == 0:
-        print("空间过滤失效")
+        logging.info("空间过滤失效")
         return db_names, db_desc
     poses = np.stack(pose_list)  # shape: (N, 3)
     dists = np.linalg.norm(poses - last_pose, axis=1)
@@ -90,9 +91,9 @@ def spatial_filter(db_names, db_desc, last_pose, ref_poses_dir, spatial_radius):
     keep_indices = np.array(valid_indices)[keep_mask]
     db_names_filtered = [db_names[i] for i in keep_indices]
     db_desc_filtered = db_desc[keep_indices]
-    print(f"空间过滤后剩余: {len(db_names_filtered)} 张参考图像")
+    logging.info(f"空间过滤后剩余: {len(db_names_filtered)} 张参考图像")
     end_time = time.time()
-    print(f"空间过滤时间: {end_time - start_time:.4f} 秒")
+    logging.info(f"空间过滤时间: {end_time - start_time:.4f} 秒")
     return db_names_filtered, db_desc_filtered
 
 
@@ -115,43 +116,23 @@ def find_similar(
     start_time = time.time()
     query_names_h5 = list_h5_names(query_descriptors)
     if len(db_names) == 0:
+        logging.error("Could not find any database image.")
         raise ValueError("Could not find any database image.")
     end_time = time.time()
-    print(f"parse_names time: {end_time - start_time:.4f} 秒")
     start_time = time.time()
     query_names = parse_names(query_prefix, query_list, query_names_h5)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    t0 = time.time()
-    print(f"parse_names time: {start_time - t0:.4f} 秒")
-    t1 = time.time()
-    print("get_ref_descriptors time:", t1 - t0)
     query_desc = get_descriptors(query_names, query_descriptors)
-    t2 = time.time()
-    print("get_query_descriptors time:", t2 - t1)
     if use_spatial_filtering \
     and last_pose is not None and len(last_pose) > 0 \
     and spatial_radius is not None \
     and ref_poses_dir is not None:
         db_names, db_desc = spatial_filter(db_names, db_desc, last_pose, ref_poses_dir, spatial_radius)
     sim = torch.einsum("id,jd->ij", query_desc.to(device), db_desc.to(device))
-    print(f"query_desc.shape: {query_desc.shape}")
-    print(f"db_desc.shape: {db_desc.shape}")
-    print(f"sim.shape: {sim.shape}")
-    print(f"query_names: {len(query_names)}, db_names: {len(db_names)}")
-    print(len(db_desc))
     # Avoid self-matching
-    t3 = time.time()
     self = np.array(query_names)[:, None] == np.array(db_names)[None]
-    t4 = time.time()
-    print("self time:", t4 - t3)
-    t1 = time.time()
-    pairs = pairs_from_score_matrix(sim, self, num_matched, min_score=similarity_threshold)
-    t5 = time.time()    
-    print("pairs_from_score_matrix time:", t5 - t4)
+    pairs = pairs_from_score_matrix(sim, self, num_matched, min_score=similarity_threshold)  
     pairs = [(query_names[i], db_names[j]) for i, j in pairs]
-    print(f"pairs time: {time.time() - t5:.4f} 秒")
-
-    logger.info(f"Found {len(pairs)} pairs.")
     with open(output, "w") as f:
         f.write("\n".join(" ".join([i, j]) for i, j in pairs))
 
