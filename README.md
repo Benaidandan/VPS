@@ -6,9 +6,13 @@ A coarse-to-fine visual positioning system that combines the power of Hierarchic
 
 - Efficient visual place recognition using [MegaLoc](https://github.com/gmberton/MegaLoc) in [Hloc](https://github.com/cvg/Hierarchical-Localization)
 - Multiple pose estimation methods:
-  - [VGGT](https://github.com/facebookresearch/vggt?tab=readme-ov-file) for accurate pose estimation
+  - accurate pose estimation
+  - [VGGT](https://github.com/facebookresearch/vggt?tab=readme-ov-file)
   - [MASt3R](https://github.com/naver/mast3r)
-- Scale recovery：using 1.input ground truth depth by rgbd camera information or 2.use [moge](https://github.com/microsoft/moge) to Monocular Depth Estimation  or 3.ues ref database depth and rgb
+- Scale recovery：
+  - use input ground truth depth by rgbd camera information 
+  - use [moge](https://github.com/microsoft/moge) to Monocular Depth Estimation  
+  - use ref database depth and rgb
 - Easy-to-use pipeline for visual localization
 - Configurable pose estimation methods
 
@@ -64,28 +68,26 @@ pip install git+https://github.com/microsoft/MoGe.git
 mkdir checkpoints
 cd checkpoints
 ```
-[Ruicheng/moge-2-vits-normal](https://huggingface.co/Ruicheng/moge-2-vits-normal)
-##
-[vggt_1B](https://huggingface.co/facebook/VGGT-1B/blob/main/model.pt)
-## Usage
+- [Ruicheng/moge-2-vits-normal](https://huggingface.co/Ruicheng/moge-2-vits-normal)
+- [vggt_1B](https://huggingface.co/facebook/VGGT-1B/blob/main/model.pt)
 
+## Usage
 ### Basic Usage
-input: rgb + depth(可选)
-ref数据库：rgb+pose(c2w) 相机到世界
-output:  
-  4x4 pose c2w(txt格式放到/data/outputs/pose下)
-  服务器返回json: {'theta': , 'x': , 'y': }
+- input: rgb + depth(可选)
+- ref数据库：rgb+pose(c2w) 相机到世界
+- output:  
+  - 4x4 pose c2w(txt格式放到/data/outputs/pose下)
+  - 服务器返回json: {'theta': , 'x': , 'y': }
 
 ```bash
 #启动服务器
 python service.py 
 #模拟测试服务器
-python scripts/test_client.py --url xxx --image xxx
+#python scripts/test_client.py --url xxx --image xxx --depth xxx
 ```
 
-###Structure
-## Project Structure
-
+## Structure
+### Project Structure
 ```
 VPS/
 ├── vps/                   # Main source code
@@ -100,10 +102,9 @@ VPS/
 │   ├── default.yaml       # Default config (VGGT) 重要
 │   └── data.yaml          # 配合scripts/colmap_to_vps.py将colmap转需要的格式，不用管
 ├── log/                   # logger
-├── log/                   # logger
 ├── service.py             # Dataset directory
 ```
-##Data Structure
+### Data Structure
 ```
 ├── data/                  # Dataset directory
 │   ├── ref/               # ref database 参考数据库(来源是slam 或者colmap的) 下面默认是文件夹名字
